@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <meta name='referrer' content='no-referrer'>
+  <meta http-equiv='Content-Security-Policy' content="default-src 'none'; connect-src https://kay-ware-auth.km5zmnxfzx.workers.dev; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <title>Kay-Ware Authorization</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: #0c0e16; color: #f4f2ff; }
+    main { width: min(100%, 480px); padding: 34px; border: 1px solid #6049a0; border-radius: 16px; background: #12151f; box-shadow: 0 20px 80px #0008; }
+    h1 { margin: 0 0 12px; font-size: 24px; }
+    p { margin: 0; color: #aeb2c5; line-height: 1.55; }
+    .success { color: #81e7aa; }
+    .error { color: #ff8097; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Kay-Ware Authorization</h1>
+    <p id='status'>Verifying your Roblox account…</p>
+  </main>
+  <script>
+    const statusElement = document.getElementById('status');
+    const parameters = new URLSearchParams(location.search);
+    const code = parameters.get('code');
+    const state = parameters.get('state');
+    const oauthError = parameters.get('error');
+    history.replaceState(null, '', location.pathname);
+    async function completeAuthorization() {
+      if (oauthError) throw new Error('Roblox authorization was cancelled or denied.');
+      if (!code || !state) throw new Error('This authorization link is incomplete or has expired.');
+      const response = await fetch('https://kay-ware-auth.km5zmnxfzx.workers.dev/v1/oauth/complete', {
+        method: 'POST', mode: 'cors', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, state })
+      });
+      const result = await response.json();
+      if (!response.ok || result.authorized !== true) throw new Error(result.message || 'Roblox authorization could not be completed.');
+      statusElement.className = 'success';
+      statusElement.textContent = 'Your Roblox account is verified. Return to Roblox; Kay-Ware will continue automatically.';
+    }
+    completeAuthorization().catch((error) => {
+      statusElement.className = 'error';
+      statusElement.textContent = error.message || 'Authorization failed. Return to Roblox and try again.';
+    });
+  </script>
+</body>
+</html>
